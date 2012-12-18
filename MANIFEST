@@ -1,4 +1,6 @@
 Changes
+bin/zmq_recv
+bin/zmq_send
 lib/ZeroMQ/Oneliner.pm
 Makefile.PL
 MANIFEST			This list of files
