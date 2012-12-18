@@ -1,0 +1,20 @@
+#!/usr/bin/perl 
+
+use ZeroMQ::Oneliner;
+
+use Getopt::Lazy
+	'help|h' => 'Show help screen',
+	-summary => 'Send message via zeromq socket.',
+	-usage => '%c %o bind-tcp://*:6666/pull?hwm=100',
+	;
+
+GetOptions;
+print Getopt::Lazy::show_help() and exit 1 unless @ARGV;
+
+my $sock = ZeroMQ::Oneliner->new($ARGV[0]);
+while(my $line = <STDIN>){
+	chomp $line;
+	
+	print $sock $line, "\n";
+}
+close $sock;
