@@ -1,16 +1,59 @@
 ZeroMQ-Oneliner
 
-The README is used to introduce the module and provide instructions on
-how to install the module, any machine dependencies it may have (for
-example C compilers and installed libraries) and any other information
-that should be provided before the module is installed.
+This module can be used to easily create ZeroMQ sockets without need to
+call zmq_setsockopt, bind, connect functions. All socket options is described
+in same way as http url does.
 
-A README file is required for CPAN modules since CPAN extracts the README
-file from a module distribution so that people browsing the archive
-can use it to get an idea of the module's uses. It is usually a good idea
-to provide version information here so that people can decide whether
-fixes for the module are worth downloading.
+Example socket:
+	
+	bind-tcp://*:6666/pull?hwm=100
 
+This means that we need to bind tcp socket on port 6666, which is ZMQ_PULL
+and have high water mark set to 100.
+
+Possible variations:
+	- connection method:
+		- bind
+		- connect
+	- connection type:
+		- tcp
+		- inproc
+		- ipc
+		- pgm
+		- epgm
+	- address - same as zeromq supports
+	- zmq socket type:
+		- push
+		- pull
+		- rep
+		- req
+		- pub
+		- sub
+	- options:
+		- hwm
+		- swap
+		- identity
+		- subscribe
+		- rate
+		- recovery
+		- sndbuf
+		- rcvbuf
+		- linger
+		- reconnect
+		- backlog
+
+CONSOLE TOOLS
+
+There are two console tools included:
+	- zmq_send wait for input on stdin and send each incoming line as separate message.
+	- zmq_recv print all incoming messages into stdout.
+
+Both called same way:
+	
+	zmq_send connect-tcp://127.0.0.1:6666/push
+
+Currently only pub/sub and push/pull supported for console tools. Module support all
+types.
 
 INSTALLATION
 
