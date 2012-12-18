@@ -49,8 +49,11 @@ Perhaps a little code snippet.
 
     use ZeroMQ::Oneliner;
 
-    my $foo = ZeroMQ::Oneliner->new();
-    ...
+    my $foo = ZeroMQ::Oneliner->new("bind-tcp://*:6667/push?hwm=100");
+    print $foo "send message";
+    
+    my $bar = ZeroMQ::Oneliner->new("connect-tcp://*:6667/pull");
+    print <$bar>; # recv message
 
 =head1 EXPORT
 
