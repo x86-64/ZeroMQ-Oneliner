@@ -9,7 +9,7 @@ use Getopt::Lazy
 	;
 
 GetOptions;
-print Getopt::Lazy::show_help() and exit 1 unless @ARGV;
+Getopt::Lazy::show_help() and exit 1 unless @ARGV;
 
 my $sock = ZeroMQ::Oneliner->new($ARGV[0]);
 while(my $line = <$sock>){
