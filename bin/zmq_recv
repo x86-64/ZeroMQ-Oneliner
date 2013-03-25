@@ -1,5 +1,7 @@
 #!/usr/bin/perl 
 
+BEGIN { unshift @INC, "./lib" };
+
 use ZeroMQ::Oneliner;
 
 use Getopt::Lazy

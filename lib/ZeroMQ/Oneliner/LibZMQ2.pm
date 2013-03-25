@@ -1,13 +1,14 @@
-package ZeroMQ::Oneliner;
+package ZeroMQ::Oneliner::LibZMQ2;
 
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use ZeroMQ qw(:all);
+use ZMQ;
+use ZMQ::Constants qw/:all/;
 
 =head1 NAME
 
-ZeroMQ::Oneliner - The great new ZeroMQ::Oneliner!
+ZeroMQ::Oneliner::LibZMQ2 - The great new ZeroMQ::Oneliner::LibZMQ2!
 
 =head1 VERSION
 
@@ -39,7 +40,7 @@ our $opts = {
 	"backlog"     => ZMQ_BACKLOG,
 };
 
-my $ctx = ZeroMQ::Context->new();
+my $ctx = ZMQ::Context->new(1);
 
 =head1 SYNOPSIS
 
@@ -47,12 +48,12 @@ Quick summary of what the module does.
 
 Perhaps a little code snippet.
 
-    use ZeroMQ::Oneliner;
+    use ZeroMQ::Oneliner::LibZMQ2;
 
-    my $foo = ZeroMQ::Oneliner->new("bind-tcp://*:6667/push?hwm=100");
+    my $foo = ZeroMQ::Oneliner::LibZMQ2->new("bind-tcp://*:6667/push?hwm=100");
     print $foo "send message";
     
-    my $bar = ZeroMQ::Oneliner->new("connect-tcp://*:6667/pull");
+    my $bar = ZeroMQ::Oneliner::LibZMQ2->new("connect-tcp://*:6667/pull");
     print <$bar>; # recv message
 
 =head1 EXPORT
@@ -121,19 +122,19 @@ sub new {
 	return $self;
 }
 
-#sub new_device {
-#	my ($class, $sock1, $sock2) = @_;
-#	
-#	my $type;
-#	if($sock1->type() eq "rep" and $sock2->type() eq "req"){
-#		$type = ZMQ_QUEUE;
-#	}elsif($sock1->type() eq "sub" and $sock2->type() eq "pub"){
-#		$type = ZMQ_FORWARDER;
-#	}elsif($sock1->type() eq "pull" and $sock2->type() eq "push"){
-#		$type = ZMQ_STREAMER;
-#	}
-#	ZeroMQ::zmq_device($type, $sock1->socket(), $sock2->socket());
-#}
+sub new_device {
+	my ($class, $sock1, $sock2) = @_;
+	
+	my $type;
+	if($sock1->type() eq "rep" and $sock2->type() eq "req"){
+		$type = ZMQ_QUEUE;
+	}elsif($sock1->type() eq "sub" and $sock2->type() eq "pub"){
+		$type = ZMQ_FORWARDER;
+	}elsif($sock1->type() eq "pull" and $sock2->type() eq "push"){
+		$type = ZMQ_STREAMER;
+	}
+	ZMQ::call("zmq_device", $type, $sock1->socket()->{_socket}, $sock2->socket()->{_socket});
+}
 
 =head1 AUTHOR
 
@@ -142,7 +143,7 @@ x86, C<< <x86mail at gmail.com> >>
 =head1 BUGS
 
 Please report any bugs or feature requests to C<bug-zeromq-oneliner at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=ZeroMQ-Oneliner>.  I will be notified, and then you'll
+the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=ZeroMQ-Oneliner::LibZMQ2>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
 
@@ -152,7 +153,7 @@ automatically be notified of progress on your bug as I make changes.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc ZeroMQ::Oneliner
+    perldoc ZeroMQ::Oneliner::LibZMQ2
 
 
 You can also look for information at:
@@ -161,19 +162,19 @@ You can also look for information at:
 
 =item * RT: CPAN's request tracker (report bugs here)
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=ZeroMQ-Oneliner>
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=ZeroMQ-Oneliner::LibZMQ2>
 
 =item * AnnoCPAN: Annotated CPAN documentation
 
-L<http://annocpan.org/dist/ZeroMQ-Oneliner>
+L<http://annocpan.org/dist/ZeroMQ-Oneliner::LibZMQ2>
 
 =item * CPAN Ratings
 
-L<http://cpanratings.perl.org/d/ZeroMQ-Oneliner>
+L<http://cpanratings.perl.org/d/ZeroMQ-Oneliner::LibZMQ2>
 
 =item * Search CPAN
 
-L<http://search.cpan.org/dist/ZeroMQ-Oneliner/>
+L<http://search.cpan.org/dist/ZeroMQ-Oneliner::LibZMQ2/>
 
 =back
 
@@ -202,4 +203,4 @@ L<http://www.gnu.org/licenses/>.
 
 =cut
 
-1; # End of ZeroMQ::Oneliner
+1; # End of ZeroMQ::Oneliner::LibZMQ2
