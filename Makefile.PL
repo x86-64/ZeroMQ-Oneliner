@@ -23,7 +23,7 @@ WriteMakefile(
 	'ZeroMQ' => 0.23,
 	'Getopt::Lazy' => '0.0.6',
     },
-    EXE_FILES => [ 'bin/zmq_send', 'bin/zmq_recv' ],
+    EXE_FILES => [ 'bin/zmq_send', 'bin/zmq_recv', 'bin/zmq_device' ],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'ZeroMQ-Oneliner-*' },
 );
