@@ -3,7 +3,8 @@ package ZeroMQ::Oneliner;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use ZeroMQ qw(:all);
+use ZMQ;
+use ZMQ::Constants qw/:all/;
 
 =head1 NAME
 
@@ -39,7 +40,7 @@ our $opts = {
 	"backlog"     => ZMQ_BACKLOG,
 };
 
-my $ctx = ZeroMQ::Context->new();
+my $ctx = ZMQ::Context->new(1);
 
 =head1 SYNOPSIS
 
@@ -121,19 +122,19 @@ sub new {
 	return $self;
 }
 
-#sub new_device {
-#	my ($class, $sock1, $sock2) = @_;
-#	
-#	my $type;
-#	if($sock1->type() eq "rep" and $sock2->type() eq "req"){
-#		$type = ZMQ_QUEUE;
-#	}elsif($sock1->type() eq "sub" and $sock2->type() eq "pub"){
-#		$type = ZMQ_FORWARDER;
-#	}elsif($sock1->type() eq "pull" and $sock2->type() eq "push"){
-#		$type = ZMQ_STREAMER;
-#	}
-#	ZeroMQ::zmq_device($type, $sock1->socket(), $sock2->socket());
-#}
+sub new_device {
+	my ($class, $sock1, $sock2) = @_;
+	
+	my $type;
+	if($sock1->type() eq "rep" and $sock2->type() eq "req"){
+		$type = ZMQ_QUEUE;
+	}elsif($sock1->type() eq "sub" and $sock2->type() eq "pub"){
+		$type = ZMQ_FORWARDER;
+	}elsif($sock1->type() eq "pull" and $sock2->type() eq "push"){
+		$type = ZMQ_STREAMER;
+	}
+	ZMQ::call("zmq_device", $type, $sock1->socket()->{_socket}, $sock2->socket()->{_socket});
+}
 
 =head1 AUTHOR
 
