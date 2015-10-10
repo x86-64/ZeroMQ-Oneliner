@@ -21,7 +21,7 @@ WriteMakefile(
 	'ZMQ'          => 1.02,
 	'ZMQ::LibZMQ2' => 1.03,
     },
-    EXE_FILES => [ 'bin/zmq_send', 'bin/zmq_recv', 'bin/zmq_device' ],
+    EXE_FILES => [ 'bin/zmqcat' ],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'ZeroMQ-Oneliner-*' },
 );

@@ -24,12 +24,12 @@ Version 0.02
 our $VERSION = '0.02';
 
 our $ZMQ_INFO = {
-	"req"           => { type => ZMQ_REQ,       port_correction => 0, default_direction => "connect", default_port => 1040, },
-	"rep"           => { type => ZMQ_REP,       port_correction => 0, default_direction => "bind",    default_port => 1040, },
+	"req"           => { type => ZMQ_REQ,       port_correction => 0, default_direction => "connect", default_port => 1040, flipflop => 1, },
+	"rep"           => { type => ZMQ_REP,       port_correction => 0, default_direction => "bind",    default_port => 1040, flipflop => 1, readable => 1 },
 	"pub"           => { type => ZMQ_PUB,       port_correction => 0, default_direction => "connect", default_port => 1041, },
-	"sub"           => { type => ZMQ_SUB,       port_correction => 0, default_direction => "bind",    default_port => 1041, },
+	"sub"           => { type => ZMQ_SUB,       port_correction => 0, default_direction => "bind",    default_port => 1041, readable => 1, },
 	"push"          => { type => ZMQ_PUSH,      port_correction => 0, default_direction => "connect", default_port => 1042, },
-	"pull"          => { type => ZMQ_PULL,      port_correction => 0, default_direction => "bind",    default_port => 1042, },
+	"pull"          => { type => ZMQ_PULL,      port_correction => 0, default_direction => "bind",    default_port => 1042, readable => 1, },
 	
 	"queue"         => { type => ZMQ_QUEUE,     left => "_device-rep",  right => "_device-req",  },
 	"forwarder"     => { type => ZMQ_FORWARDER, left => "_device-sub",  right => "_device-pub",  },
@@ -42,12 +42,12 @@ our $ZMQ_INFO = {
 	"_device-push"  => { type => ZMQ_PUSH,      port_correction => 2, default_direction => "bind",    default_port => 1049, },
 	"_device-pull"  => { type => ZMQ_PULL,      port_correction => 1, default_direction => "bind",    default_port => 1049, },
 	
-	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1, default_direction => "connect", default_port => 1043, },
-	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2, default_direction => "connect", default_port => 1043, },
+	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1, default_direction => "connect", default_port => 1043, flipflop => 1, },
+	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2, default_direction => "connect", default_port => 1043, flipflop => 1, readable => 1},
 	"forwarder-pub" => { type => ZMQ_PUB,       port_correction => 1, default_direction => "connect", default_port => 1046, },
-	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2, default_direction => "connect", default_port => 1046, },
+	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2, default_direction => "connect", default_port => 1046, readable => 1, },
 	"streamer-push" => { type => ZMQ_PUSH,      port_correction => 1, default_direction => "connect", default_port => 1049, },
-	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2, default_direction => "connect", default_port => 1049, },
+	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2, default_direction => "connect", default_port => 1049, readable => 1, },
 };
 our $ZMQ_SETSOCKOPT = {
 	"hwm"         => ZMQ_HWM,
@@ -101,16 +101,21 @@ sub TIEHANDLE {
         : shift->new(@_)
     );	
 }
+sub FILENO {   shift->fd; }
 sub PRINT {    shift->send(@_); } 
 sub READLINE { shift->recv(@_); }
 sub CLOSE {    shift->close(@_); }
 
 
 sub socket { my $self = shift; return *$self->{socket}; }
-sub send   { my $self = shift; *$self->{socket}->send(@_); }
-sub recv   { my $self = shift; my $msg = *$self->{socket}->recv(); $msg->data(); }
+sub fd     { my $self = shift; return *$self->{socket}->getsockopt(ZMQ_FD); }
+sub send   { my $self = shift; *$self->{socket}->send(@_) == 0 or warn $!; }
+sub recv   { my $self = shift; my $msg = *$self->{socket}->recv() or warn $!; $msg ? $msg->data : undef; }
 sub close  { my $self = shift; *$self->{socket}->close(); }
-
+sub type   { my $self = shift; *$self->{type}; }
+sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
+sub can_write { my $self = shift; $self->readable == 0 ? 1 : 0; }
+sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 0 }
 
 sub new {
 	my ($class, $uri) = @_;
@@ -158,6 +163,7 @@ sub new {
 		
 		my $self = bless \do { local *FH }, $class;
 		tie *$self, $class, $self;
+		*$self->{type}   = $zmq_type;
 		*$self->{socket} = $socket;
 		return $self;
 	}

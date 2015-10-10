@@ -1,0 +1,32 @@
+#!/usr/bin/perl 
+
+use lib 'lib';
+use ZMQ::Constants qw/:all/;
+use ZeroMQ::Oneliner;
+
+unless(@ARGV){
+	printf qq!$0 - Send or receive messages via zeromq socket, create devices
+usage:  $0 [options..] tcp://*:6666/push?opt=value
+available sockets: %s
+available options: %s
+!,
+		join(", ", ZeroMQ::Oneliner::available_sockets()),
+		join(", ", ZeroMQ::Oneliner::available_options()),
+	;
+	exit 1;
+}
+
+my $sock  = ZeroMQ::Oneliner->new(@ARGV);
+
+my ($fd_in, $fd_out, $flip, $fd_flip) = (
+	$sock->can_read ? 
+		($sock,   \*STDOUT, 1, \*STDIN) :
+		(\*STDIN, $sock,    0, \*STDOUT)
+);
+
+while(my $line = <$fd_in>){
+	print $fd_out $line;
+	print $sock scalar <$fd_flip> if $sock->can_flipflop and $flip;
+	print $fd_flip scalar <$sock> if $sock->can_flipflop and not $flip;
+}
+close $sock;
