@@ -13,41 +13,41 @@ use ZMQ::Constants qw/:all/;
 
 =head1 NAME
 
-ZeroMQ::Oneliner - The great new ZeroMQ::Oneliner!
+ZeroMQ::Oneliner - Create ZMQ sockets using URI as description
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
 our $VERSION = '0.02';
 
 our $ZMQ_INFO = {
-	"req"           => { type => ZMQ_REQ,       port_correction => 0 },
-	"rep"           => { type => ZMQ_REP,       port_correction => 0 },
-	"pub"           => { type => ZMQ_PUB,       port_correction => 0 },
-	"sub"           => { type => ZMQ_SUB,       port_correction => 0 },
-	"push"          => { type => ZMQ_PUSH,      port_correction => 0 },
-	"pull"          => { type => ZMQ_PULL,      port_correction => 0 },
+	"req"           => { type => ZMQ_REQ,       port_correction => 0, default_direction => "connect", default_port => 1040, },
+	"rep"           => { type => ZMQ_REP,       port_correction => 0, default_direction => "bind",    default_port => 1040, },
+	"pub"           => { type => ZMQ_PUB,       port_correction => 0, default_direction => "connect", default_port => 1041, },
+	"sub"           => { type => ZMQ_SUB,       port_correction => 0, default_direction => "bind",    default_port => 1041, },
+	"push"          => { type => ZMQ_PUSH,      port_correction => 0, default_direction => "connect", default_port => 1042, },
+	"pull"          => { type => ZMQ_PULL,      port_correction => 0, default_direction => "bind",    default_port => 1042, },
 	
-	"queue"         => { type => ZMQ_QUEUE,     left => "device-rep",  right => "device-req"   },
-	"forwarder"     => { type => ZMQ_FORWARDER, left => "device-sub",  right => "device-pub"   },
-	"streamer"      => { type => ZMQ_STREAMER,  left => "device-pull", right => "device-push"  },
+	"queue"         => { type => ZMQ_QUEUE,     left => "_device-rep",  right => "_device-req",  },
+	"forwarder"     => { type => ZMQ_FORWARDER, left => "_device-sub",  right => "_device-pub",  },
+	"streamer"      => { type => ZMQ_STREAMER,  left => "_device-pull", right => "_device-push", },
 	
-	"device-req"    => { type => ZMQ_REQ,       port_correction => 2 },
-	"device-rep"    => { type => ZMQ_REP,       port_correction => 1 },
-	"device-pub"    => { type => ZMQ_PUB,       port_correction => 2 },
-	"device-sub"    => { type => ZMQ_SUB,       port_correction => 1 },
-	"device-push"   => { type => ZMQ_PUSH,      port_correction => 2 },
-	"device-pull"   => { type => ZMQ_PULL,      port_correction => 1 },
+	"_device-req"   => { type => ZMQ_REQ,       port_correction => 2, default_direction => "bind",    default_port => 1043, },
+	"_device-rep"   => { type => ZMQ_REP,       port_correction => 1, default_direction => "bind",    default_port => 1043, },
+	"_device-pub"   => { type => ZMQ_PUB,       port_correction => 2, default_direction => "bind",    default_port => 1046, },
+	"_device-sub"   => { type => ZMQ_SUB,       port_correction => 1, default_direction => "bind",    default_port => 1046, },
+	"_device-push"  => { type => ZMQ_PUSH,      port_correction => 2, default_direction => "bind",    default_port => 1049, },
+	"_device-pull"  => { type => ZMQ_PULL,      port_correction => 1, default_direction => "bind",    default_port => 1049, },
 	
-	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1 },
-	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2 },
-	"forwarder-pub" => { type => ZMQ_PUB,       port_correction => 1 },
-	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2 },
-	"streamer-push" => { type => ZMQ_PUSH,      port_correction => 1 },
-	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2 },
+	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1, default_direction => "connect", default_port => 1043, },
+	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2, default_direction => "connect", default_port => 1043, },
+	"forwarder-pub" => { type => ZMQ_PUB,       port_correction => 1, default_direction => "connect", default_port => 1046, },
+	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2, default_direction => "connect", default_port => 1046, },
+	"streamer-push" => { type => ZMQ_PUSH,      port_correction => 1, default_direction => "connect", default_port => 1049, },
+	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2, default_direction => "connect", default_port => 1049, },
 };
 our $ZMQ_SETSOCKOPT = {
 	"hwm"         => ZMQ_HWM,
@@ -79,14 +79,18 @@ Perhaps a little code snippet.
     my $bar = ZeroMQ::Oneliner->new("connect-tcp://*:6667/pull");
     print <$bar>; # recv message
 
-=head1 EXPORT
+=head1 SUPPORTED URLS
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+    bind-tcp://127.0.0.1:6667/push?hwm=100
+    connect-tcp://127.0.0.1:6667/pull
+    tcp://127.0.0.1:6777/push
+    tcp://127.0.0.1/push
+    push
+    tcp://127.0.0.1/streamer
+    tcp://127.0.0.1/streamer-push
+    tcp://127.0.0.1/streamer-pull
+    ...
 
-=head1 SUBROUTINES/METHODS
-
-=head2 function1
 
 =cut
 
@@ -97,22 +101,23 @@ sub TIEHANDLE {
         : shift->new(@_)
     );	
 }
+sub PRINT {    shift->send(@_); } 
+sub READLINE { shift->recv(@_); }
+sub CLOSE {    shift->close(@_); }
 
-sub PRINT {    my $self = shift; *$self->{socket}->send(@_); } 
-sub READLINE { my $self = shift; my $msg = *$self->{socket}->recv(); $msg->data(); }
-sub CLOSE {    my $self = shift; *$self->{socket}->close();      }
 
-sub socket {
-	my $self = shift;
-	return *$self->{socket};
-}
+sub socket { my $self = shift; return *$self->{socket}; }
+sub send   { my $self = shift; *$self->{socket}->send(@_); }
+sub recv   { my $self = shift; my $msg = *$self->{socket}->recv(); $msg->data(); }
+sub close  { my $self = shift; *$self->{socket}->close(); }
+
 
 sub new {
 	my ($class, $uri) = @_;
 	
 	my $uri_obj = URI->new($uri);
-	my ($bindconnect, $proto) = ($uri_obj->scheme =~ /(bind|connect)-([^:]+)/);
-	my ($zmq_host, $zmq_port) = split /:/, $uri_obj->authority;
+	my ($direction, $proto) = ( ($uri_obj->scheme || "") =~ /(?:(bind|connect)-)?([^:]+)/i);
+	my ($zmq_host, $zmq_port) = split /:/, ($uri_obj->authority || "");
 	my $zmq_type      = $uri_obj->path; $zmq_type =~ s@^/@@;
 	my $zmq_options   = { $uri_obj->query_form };
 	
@@ -131,6 +136,11 @@ sub new {
 	}else{
 		my $socket = $CTX->socket($info->{type});
 		
+		$direction ||= $info->{default_direction};
+		$proto     ||= "tcp";
+		$zmq_host  ||= "127.0.0.1";
+		$zmq_port  ||= $info->{default_port};
+		
 		my $zmq_address = sprintf("%s://%s:%s", 
 			$proto,
 			$zmq_host,
@@ -143,14 +153,25 @@ sub new {
 			$socket->setsockopt($ZMQ_SETSOCKOPT->{$k}, $v);
 		}
 		
-		if($bindconnect eq "bind"){    $socket->bind($zmq_address);    }
-		if($bindconnect eq "connect"){ $socket->connect($zmq_address); }
+		if($direction eq "bind"){    $socket->bind($zmq_address);    }
+		if($direction eq "connect"){ $socket->connect($zmq_address); }
 		
 		my $self = bless \do { local *FH }, $class;
 		tie *$self, $class, $self;
 		*$self->{socket} = $socket;
 		return $self;
 	}
+}
+
+sub available_sockets {
+	return 
+		grep { not /^_/ }
+		keys %$ZMQ_INFO;
+}
+
+sub available_options {
+	return
+		keys %$ZMQ_SETSOCKOPT;
 }
 
 =head1 AUTHOR
