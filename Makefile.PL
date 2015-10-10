@@ -18,10 +18,8 @@ WriteMakefile(
         'Test::More' => 0,
     },
     PREREQ_PM => {
-        #'ABC'              => 1.6,
-        #'Foo::Bar::Module' => 5.0401,
-	'ZeroMQ' => 0.23,
-	'Getopt::Lazy' => '0.0.6',
+	'ZMQ'          => 1.02,
+	'ZMQ::LibZMQ2' => 1.03,
     },
     EXE_FILES => [ 'bin/zmq_send', 'bin/zmq_recv', 'bin/zmq_device' ],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

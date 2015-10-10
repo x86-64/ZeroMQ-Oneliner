@@ -165,12 +165,14 @@ sub new {
 
 sub available_sockets {
 	return 
+		sort
 		grep { not /^_/ }
 		keys %$ZMQ_INFO;
 }
 
 sub available_options {
 	return
+		sort
 		keys %$ZMQ_SETSOCKOPT;
 }
 

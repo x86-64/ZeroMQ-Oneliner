@@ -1,17 +1,19 @@
 #!/usr/bin/perl 
 
-BEGIN { unshift @INC, "./lib" };
-
+use lib 'lib';
 use ZeroMQ::Oneliner;
 
-use Getopt::Lazy
-	'help|h' => 'Show help screen',
-	-summary => 'Create ZeroMQ device',
-	-usage => '%c %o bind-tcp://*:6666/queue',
+unless(@ARGV){
+	printf qq!$0 - Create ZeroMQ device
+usage:  $0 [options..] tcp://*:6666/queue?opt=value
+available sockets: %s
+available options: %s
+!,
+		join(", ", ZeroMQ::Oneliner::available_sockets()),
+		join(", ", ZeroMQ::Oneliner::available_options()),
 	;
+	exit 1;
+}
 
-GetOptions;
-Getopt::Lazy::show_help() and exit 1 unless @ARGV;
-
-ZeroMQ::Oneliner->new($ARGV[0]);
+ZeroMQ::Oneliner->new(@ARGV);
 
