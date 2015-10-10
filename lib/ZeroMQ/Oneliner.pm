@@ -3,7 +3,12 @@ package ZeroMQ::Oneliner;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
+
+BEGIN { $ENV{PERL_ZMQ_BACKEND} = 'ZMQ::LibZMQ2'; }
+
+use URI;
 use ZMQ;
+use ZMQ::Message;
 use ZMQ::Constants qw/:all/;
 
 =head1 NAME
@@ -16,17 +21,35 @@ Version 0.01
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
-our $types = {
-	"push" => ZMQ_PUSH,
-	"pull" => ZMQ_PULL,
-	"req"  => ZMQ_REQ,
-	"rep"  => ZMQ_REP,
-	"pub"  => ZMQ_PUB,
-	"sub"  => ZMQ_SUB,
+our $ZMQ_INFO = {
+	"req"           => { type => ZMQ_REQ,       port_correction => 0 },
+	"rep"           => { type => ZMQ_REP,       port_correction => 0 },
+	"pub"           => { type => ZMQ_PUB,       port_correction => 0 },
+	"sub"           => { type => ZMQ_SUB,       port_correction => 0 },
+	"push"          => { type => ZMQ_PUSH,      port_correction => 0 },
+	"pull"          => { type => ZMQ_PULL,      port_correction => 0 },
+	
+	"queue"         => { type => ZMQ_QUEUE,     left => "device-rep",  right => "device-req"   },
+	"forwarder"     => { type => ZMQ_FORWARDER, left => "device-sub",  right => "device-pub"   },
+	"streamer"      => { type => ZMQ_STREAMER,  left => "device-pull", right => "device-push"  },
+	
+	"device-req"    => { type => ZMQ_REQ,       port_correction => 2 },
+	"device-rep"    => { type => ZMQ_REP,       port_correction => 1 },
+	"device-pub"    => { type => ZMQ_PUB,       port_correction => 2 },
+	"device-sub"    => { type => ZMQ_SUB,       port_correction => 1 },
+	"device-push"   => { type => ZMQ_PUSH,      port_correction => 2 },
+	"device-pull"   => { type => ZMQ_PULL,      port_correction => 1 },
+	
+	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1 },
+	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2 },
+	"forwarder-pub" => { type => ZMQ_PUB,       port_correction => 1 },
+	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2 },
+	"streamer-push" => { type => ZMQ_PUSH,      port_correction => 1 },
+	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2 },
 };
-our $opts = {
+our $ZMQ_SETSOCKOPT = {
 	"hwm"         => ZMQ_HWM,
 	"swap"        => ZMQ_SWAP,
 	"identity"    => ZMQ_IDENTITY,
@@ -40,7 +63,7 @@ our $opts = {
 	"backlog"     => ZMQ_BACKLOG,
 };
 
-my $ctx = ZMQ::Context->new(1);
+my $CTX = ZMQ::Context->new(1);
 
 =head1 SYNOPSIS
 
@@ -75,7 +98,7 @@ sub TIEHANDLE {
     );	
 }
 
-sub PRINT {    my $self = shift; *$self->{socket}->send(@_);      } 
+sub PRINT {    my $self = shift; *$self->{socket}->send(@_); } 
 sub READLINE { my $self = shift; my $msg = *$self->{socket}->recv(); $msg->data(); }
 sub CLOSE {    my $self = shift; *$self->{socket}->close();      }
 
@@ -84,56 +107,50 @@ sub socket {
 	return *$self->{socket};
 }
 
-sub type {
-	my $self = shift;
-	return *$self->{type};
-}
-
 sub new {
-	my ($class, $name) = @_;
+	my ($class, $uri) = @_;
 	
-	my $self = bless \do { local *FH }, $class;
-	tie *$self, $class, $self;
+	my $uri_obj = URI->new($uri);
+	my ($bindconnect, $proto) = ($uri_obj->scheme =~ /(bind|connect)-([^:]+)/);
+	my ($zmq_host, $zmq_port) = split /:/, $uri_obj->authority;
+	my $zmq_type      = $uri_obj->path; $zmq_type =~ s@^/@@;
+	my $zmq_options   = { $uri_obj->query_form };
 	
-	my ($socket);
+	my $info = $ZMQ_INFO->{$zmq_type};
 	
-	if($name =~ m@(bind|connect)-((?:inproc|ipc|tcp|pgm|epgm)://[[:alnum:].*]+:[0-9]+)/(re[qp]|push|pull|[ps]ub)[?]?([[:alnum:]=&]+)?@i){
-		my ($bc, $zmq_address, $s_type, $s_options) = ($1, $2, $3, $4);
+	if($zmq_type ~~ [ "queue", "forwarder", "streamer" ]){
+		my $sock1_uri = $uri_obj->clone;
+		my $sock2_uri = $uri_obj->clone;
+		$sock1_uri->path(sprintf("/%s", $info->{left}));
+		$sock2_uri->path(sprintf("/%s", $info->{right}));
+		my $sock1 = $class->new("".$sock1_uri);
+		my $sock2 = $class->new("".$sock2_uri);
 		
-		*$self->{type} = $s_type;
-		$socket = $ctx->socket($types->{$s_type});
+		ZMQ::call("zmq_device", $info->{type}, $sock1->socket()->{_socket}, $sock2->socket()->{_socket});
+		exit;
+	}else{
+		my $socket = $CTX->socket($info->{type});
 		
-		if($s_options){
-			foreach my $option (split /&/, $s_options){
-				my ($k, $v) = split /=/, $option;
-				
-				$k = $opts->{$k};
-				$v = int($v) if $v =~ /^\d+$/;
-				
-				$socket->setsockopt($k, $v);
-			}
+		my $zmq_address = sprintf("%s://%s:%s", 
+			$proto,
+			$zmq_host,
+			$zmq_port + $info->{port_correction}
+		);
+		
+		while(my ($k, $v) = each %$zmq_options){
+			$v = int($v) if $v =~ /^\d+$/;
+			
+			$socket->setsockopt($ZMQ_SETSOCKOPT->{$k}, $v);
 		}
 		
-		if($bc eq "bind"){    $socket->bind($zmq_address);    }
-		if($bc eq "connect"){ $socket->connect($zmq_address); }
+		if($bindconnect eq "bind"){    $socket->bind($zmq_address);    }
+		if($bindconnect eq "connect"){ $socket->connect($zmq_address); }
 		
+		my $self = bless \do { local *FH }, $class;
+		tie *$self, $class, $self;
 		*$self->{socket} = $socket;
+		return $self;
 	}
-	return $self;
-}
-
-sub new_device {
-	my ($class, $sock1, $sock2) = @_;
-	
-	my $type;
-	if($sock1->type() eq "rep" and $sock2->type() eq "req"){
-		$type = ZMQ_QUEUE;
-	}elsif($sock1->type() eq "sub" and $sock2->type() eq "pub"){
-		$type = ZMQ_FORWARDER;
-	}elsif($sock1->type() eq "pull" and $sock2->type() eq "push"){
-		$type = ZMQ_STREAMER;
-	}
-	ZMQ::call("zmq_device", $type, $sock1->socket()->{_socket}, $sock2->socket()->{_socket});
 }
 
 =head1 AUTHOR

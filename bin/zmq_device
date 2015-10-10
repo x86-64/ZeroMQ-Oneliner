@@ -7,13 +7,11 @@ use ZeroMQ::Oneliner;
 use Getopt::Lazy
 	'help|h' => 'Show help screen',
 	-summary => 'Create ZeroMQ device',
-	-usage => '%c %o bind-tcp://*:6666/pull bind-tcp://*:6667/push',
+	-usage => '%c %o bind-tcp://*:6666/queue',
 	;
 
 GetOptions;
 Getopt::Lazy::show_help() and exit 1 unless @ARGV;
 
-my $sock1  = ZeroMQ::Oneliner->new($ARGV[0]);
-my $sock2  = ZeroMQ::Oneliner->new($ARGV[1]);
-my $device = ZeroMQ::Oneliner->new_device($sock1, $sock2);
+ZeroMQ::Oneliner->new($ARGV[0]);
 
