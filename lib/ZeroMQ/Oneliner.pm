@@ -116,6 +116,8 @@ sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
 sub can_write { my $self = shift; $self->readable == 0 ? 1 : 0; }
 sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 0 }
+sub subscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_SUBSCRIBE, shift); }
+sub unsubscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_UNSUBSCRIBE, shift); }
 
 sub new {
 	my ($class, $uri) = @_;
