@@ -111,13 +111,14 @@ sub socket { my $self = shift; return *$self->{socket}; }
 sub fd     { my $self = shift; return *$self->{socket}->getsockopt(ZMQ_FD); }
 sub send   { my $self = shift; *$self->{socket}->send(@_) == 0 or warn $!; }
 sub recv   { my $self = shift; my $msg = *$self->{socket}->recv() or warn $!; $msg ? $msg->data : undef; }
-sub close  { my $self = shift; *$self->{socket}->close(); }
+sub close  { my $self = shift; $self->socket ? $self->socket->close() : undef; *$self->{socket} = undef; }
 sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
 sub can_write { my $self = shift; $self->readable == 0 ? 1 : 0; }
 sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 0 }
 sub subscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_SUBSCRIBE, shift); }
 sub unsubscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_UNSUBSCRIBE, shift); }
+sub DESTROY { shift->close; }
 
 sub new {
 	my ($class, $uri) = @_;
