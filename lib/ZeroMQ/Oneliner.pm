@@ -28,7 +28,7 @@ our $ZMQ_INFO = {
 	"req"           => { type => ZMQ_REQ,       port_correction => 0, default_direction => "connect", default_port => 1040, flipflop => 1, },
 	"rep"           => { type => ZMQ_REP,       port_correction => 0, default_direction => "bind",    default_port => 1040, flipflop => 1, readable => 1 },
 	"pub"           => { type => ZMQ_PUB,       port_correction => 0, default_direction => "connect", default_port => 1041, },
-	"sub"           => { type => ZMQ_SUB,       port_correction => 0, default_direction => "bind",    default_port => 1041, readable => 1, },
+	"sub"           => { type => ZMQ_SUB,       port_correction => 0, default_direction => "bind",    default_port => 1041, readable => 1, default_options => { subscribe => "" }, },
 	"push"          => { type => ZMQ_PUSH,      port_correction => 0, default_direction => "connect", default_port => 1042, },
 	"pull"          => { type => ZMQ_PULL,      port_correction => 0, default_direction => "bind",    default_port => 1042, readable => 1, },
 	
@@ -39,14 +39,14 @@ our $ZMQ_INFO = {
 	"_device-req"   => { type => ZMQ_REQ,       port_correction => 2, default_direction => "bind",    default_port => 1043, },
 	"_device-rep"   => { type => ZMQ_REP,       port_correction => 1, default_direction => "bind",    default_port => 1043, },
 	"_device-pub"   => { type => ZMQ_PUB,       port_correction => 2, default_direction => "bind",    default_port => 1046, },
-	"_device-sub"   => { type => ZMQ_SUB,       port_correction => 1, default_direction => "bind",    default_port => 1046, },
+	"_device-sub"   => { type => ZMQ_SUB,       port_correction => 1, default_direction => "bind",    default_port => 1046, default_options => { subscribe => "" }, },
 	"_device-push"  => { type => ZMQ_PUSH,      port_correction => 2, default_direction => "bind",    default_port => 1049, },
 	"_device-pull"  => { type => ZMQ_PULL,      port_correction => 1, default_direction => "bind",    default_port => 1049, },
 	
 	"queue-req"     => { type => ZMQ_REQ,       port_correction => 1, default_direction => "connect", default_port => 1043, flipflop => 1, },
 	"queue-rep"     => { type => ZMQ_REP,       port_correction => 2, default_direction => "connect", default_port => 1043, flipflop => 1, readable => 1},
 	"forwarder-pub" => { type => ZMQ_PUB,       port_correction => 1, default_direction => "connect", default_port => 1046, },
-	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2, default_direction => "connect", default_port => 1046, readable => 1, },
+	"forwarder-sub" => { type => ZMQ_SUB,       port_correction => 2, default_direction => "connect", default_port => 1046, readable => 1, default_options => { subscribe => "" }, },
 	"streamer-push" => { type => ZMQ_PUSH,      port_correction => 1, default_direction => "connect", default_port => 1049, },
 	"streamer-pull" => { type => ZMQ_PULL,      port_correction => 2, default_direction => "connect", default_port => 1049, readable => 1, },
 };
@@ -128,7 +128,6 @@ sub new {
 	my ($direction, $proto) = ( ($uri_obj->scheme || "") =~ /(?:(bind|connect)-)?([^:]+)/i);
 	my ($zmq_host, $zmq_port) = split /:/, ($uri_obj->authority || "");
 	my $zmq_type      = $uri_obj->path; $zmq_type =~ s@^/@@;
-	my $zmq_options   = { $uri_obj->query_form };
 	
 	my $info = $ZMQ_INFO->{$zmq_type};
 	
@@ -155,6 +154,12 @@ sub new {
 			$zmq_host,
 			$zmq_port + $info->{port_correction}
 		);
+		
+		while(my ($k, $v) = each %{ $info->{default_options} }){
+			unless(defined $uri_obj->query_param($k)){
+				$uri_obj->query_param($k, $v);
+			}
+		}
 		
 		foreach my $k ($uri_obj->query_param){
 			foreach my $v ($uri_obj->query_param($k)){
