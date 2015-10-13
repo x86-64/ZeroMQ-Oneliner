@@ -7,6 +7,7 @@ use warnings FATAL => 'all';
 BEGIN { $ENV{PERL_ZMQ_BACKEND} = 'ZMQ::LibZMQ2'; }
 
 use URI;
+use URI::QueryParam;
 use ZMQ;
 use ZMQ::Message;
 use ZMQ::Constants qw/:all/;
@@ -155,10 +156,12 @@ sub new {
 			$zmq_port + $info->{port_correction}
 		);
 		
-		while(my ($k, $v) = each %$zmq_options){
-			$v = int($v) if $v =~ /^\d+$/;
+		foreach my $k ($uri_obj->query_param){
+			foreach my $v ($uri_obj->query_param($k)){
+				$v = int($v) if $v =~ /^\d+$/;
 			
-			$socket->setsockopt($ZMQ_SETSOCKOPT->{$k}, $v);
+				$socket->setsockopt($ZMQ_SETSOCKOPT->{$k}, $v);
+			}
 		}
 		
 		if($direction eq "bind"){    $socket->bind($zmq_address);    }
