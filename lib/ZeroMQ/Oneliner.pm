@@ -112,6 +112,8 @@ sub socket { my $self = shift; return *$self->{socket}; }
 sub fd     { my $self = shift; return *$self->{socket}->getsockopt(ZMQ_FD); }
 sub send   { my $self = shift; *$self->{socket}->send(@_) == 0 or warn $!; }
 sub recv   { my $self = shift; my $msg = *$self->{socket}->recv() or warn $!; $msg ? $msg->data : undef; }
+sub can_recv { my $self = shift; $self->socket->getsockopt(ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
+sub can_recvmore { my $self = shift; $self->socket->getsockopt(ZMQ_RCVMORE) ? 1 : 0; }
 sub close  { my $self = shift; $self->socket ? $self->socket->close() : undef; *$self->{socket} = undef; }
 sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
