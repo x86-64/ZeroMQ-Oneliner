@@ -19,7 +19,7 @@ WriteMakefile(
     },
     PREREQ_PM => {
 	'ZMQ'          => 1.02,
-	'ZMQ::LibZMQ2' => 1.03,
+	'ZMQ::LibZMQ3' => 1.19,
     },
     EXE_FILES => [ 'bin/zmqcat' ],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
