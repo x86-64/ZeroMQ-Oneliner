@@ -4,12 +4,9 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 
-BEGIN { $ENV{PERL_ZMQ_BACKEND} = 'ZMQ::LibZMQ3'; }
-
 use URI;
 use URI::QueryParam;
-use ZMQ;
-use ZMQ::Message;
+use ZMQ::LibZMQ4;
 use ZMQ::Constants qw/:all/;
 
 =head1 NAME
@@ -64,7 +61,7 @@ our $ZMQ_SETSOCKOPT = {
 	"backlog"     => ZMQ_BACKLOG,
 };
 
-my $CTX = ZMQ::Context->new(1);
+my $CTX = zmq_init(1);
 
 =head1 SYNOPSIS
 
@@ -109,18 +106,18 @@ sub CLOSE {    shift->close(@_); }
 
 
 sub socket { my $self = shift; return *$self->{socket}; }
-sub fd     { my $self = shift; return *$self->{socket}->getsockopt(ZMQ_FD); }
-sub send   { my $self = shift; my $msg = ZMQ::Message->new(@_); *$self->{socket}->sendmsg($msg) != -1 or warn $!; }
-sub recv   { my $self = shift; my $msg = *$self->{socket}->recvmsg() or warn $!; $msg ? $msg->data : undef; }
-sub can_recv { my $self = shift; $self->socket->getsockopt(ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
-sub can_recvmore { my $self = shift; $self->socket->getsockopt(ZMQ_RCVMORE) ? 1 : 0; }
-sub close  { my $self = shift; $self->socket ? $self->socket->close() : undef; *$self->{socket} = undef; }
+sub fd     { my $self = shift; return zmq_getsockopt(*$self->{socket}, ZMQ_FD); }
+sub send   { my $self = shift; zmq_msg_send(shift, *$self->{socket}) != -1 or warn $!; }
+sub recv   { my $self = shift; my $msg = zmq_msg_init(); zmq_msg_recv($msg, *$self->{socket}) or warn $!; return zmq_msg_data($msg); }
+sub can_recv { my $self = shift; zmq_getsockopt($self->socket, ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
+sub can_recvmore { my $self = shift; zmq_getsockopt($self->socket, ZMQ_RCVMORE) ? 1 : 0; }
+sub close  { my $self = shift; $self->socket ? zmq_close($self->socket) : undef; *$self->{socket} = undef; }
 sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
 sub can_write { my $self = shift; $self->readable == 0 ? 1 : 0; }
 sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 0 }
-sub subscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_SUBSCRIBE, shift); }
-sub unsubscribe { my $self = shift; *$self->{socket}->setsockopt(ZMQ_UNSUBSCRIBE, shift); }
+sub subscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_SUBSCRIBE, shift); }
+sub unsubscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_UNSUBSCRIBE, shift); }
 sub DESTROY { shift->close; }
 
 sub new {
@@ -141,10 +138,10 @@ sub new {
 		my $sock1 = $class->new("".$sock1_uri);
 		my $sock2 = $class->new("".$sock2_uri);
 		
-		ZMQ::call("zmq_device", $info->{type}, $sock1->socket()->{_socket}, $sock2->socket()->{_socket});
+		zmq_device($info->{type}, $sock1->socket, $sock2->socket);
 		exit;
 	}else{
-		my $socket = $CTX->socket($info->{type});
+		my $socket = zmq_socket($CTX, $info->{type});
 		
 		$direction ||= $info->{default_direction};
 		$proto     ||= "tcp";
@@ -167,12 +164,12 @@ sub new {
 			foreach my $v ($uri_obj->query_param($k)){
 				$v = int($v) if $v =~ /^\d+$/;
 			
-				$socket->setsockopt($ZMQ_SETSOCKOPT->{$k}, $v);
+				zmq_setsockopt($socket, $ZMQ_SETSOCKOPT->{$k}, $v);
 			}
 		}
 		
-		if($direction eq "bind"){    $socket->bind($zmq_address);    }
-		if($direction eq "connect"){ $socket->connect($zmq_address); }
+		if($direction eq "bind"){    zmq_bind($socket, $zmq_address);    }
+		if($direction eq "connect"){ zmq_connect($socket, $zmq_address); }
 		
 		my $self = bless \do { local *FH }, $class;
 		tie *$self, $class, $self;

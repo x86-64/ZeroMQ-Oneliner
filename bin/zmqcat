@@ -1,7 +1,6 @@
 #!/usr/bin/perl 
 
 use lib 'lib';
-use ZMQ::Constants qw/:all/;
 use ZeroMQ::Oneliner;
 
 unless(@ARGV){
