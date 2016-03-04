@@ -61,7 +61,8 @@ our $ZMQ_SETSOCKOPT = {
 	"backlog"     => ZMQ_BACKLOG,
 };
 
-my $CTX = zmq_init(1);
+my $CTX;
+my $CTX_open_sockets_cnt = 0;
 
 =head1 SYNOPSIS
 
@@ -111,7 +112,6 @@ sub send   { my $self = shift; zmq_msg_send(shift, *$self->{socket}) != -1 or wa
 sub recv   { my $self = shift; my $msg = zmq_msg_init(); zmq_msg_recv($msg, *$self->{socket}) or warn $!; return zmq_msg_data($msg); }
 sub can_recv { my $self = shift; zmq_getsockopt($self->socket, ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
 sub can_recvmore { my $self = shift; zmq_getsockopt($self->socket, ZMQ_RCVMORE) ? 1 : 0; }
-sub close  { my $self = shift; $self->socket ? zmq_close($self->socket) : undef; *$self->{socket} = undef; }
 sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
 sub can_write { my $self = shift; $self->readable == 0 ? 1 : 0; }
@@ -119,6 +119,20 @@ sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 
 sub subscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_SUBSCRIBE, shift); }
 sub unsubscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_UNSUBSCRIBE, shift); }
 sub DESTROY { shift->close; }
+
+sub close  {
+	my $self = shift;
+
+	return unless $self->socket;
+	
+	zmq_close($self->socket);
+	*$self->{socket} = undef;
+	
+	if(--$CTX_open_sockets_cnt == 0){
+		zmq_ctx_destroy($CTX);
+		$CTX = undef;
+	}
+}
 
 sub new {
 	my ($class, $uri) = @_;
@@ -141,6 +155,10 @@ sub new {
 		zmq_device($info->{type}, $sock1->socket, $sock2->socket);
 		exit;
 	}else{
+		if($CTX_open_sockets_cnt == 0){
+			$CTX = zmq_ctx_new() or die $!;
+		}
+		
 		my $socket = zmq_socket($CTX, $info->{type});
 		
 		$direction ||= $info->{default_direction};
@@ -175,6 +193,7 @@ sub new {
 		tie *$self, $class, $self;
 		*$self->{type}   = $zmq_type;
 		*$self->{socket} = $socket;
+		$CTX_open_sockets_cnt++;
 		return $self;
 	}
 }
