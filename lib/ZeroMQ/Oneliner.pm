@@ -133,7 +133,7 @@ sub new {
 	
 	my $info = $ZMQ_INFO->{$zmq_type};
 	
-	if($zmq_type ~~ [ "queue", "forwarder", "streamer" ]){
+	if(grep { $zmq_type eq $_ } ("queue", "forwarder", "streamer")){
 		my $sock1_uri = $uri_obj->clone;
 		my $sock2_uri = $uri_obj->clone;
 		$sock1_uri->path(sprintf("/%s", $info->{left}));
