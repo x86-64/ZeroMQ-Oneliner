@@ -110,7 +110,7 @@ sub CLOSE {    shift->close(@_); }
 
 sub socket { my $self = shift; return *$self->{socket}; }
 sub fd     { my $self = shift; return *$self->{socket}->getsockopt(ZMQ_FD); }
-sub send   { my $self = shift; *$self->{socket}->sendmsg(@_) != -1 or warn $!; }
+sub send   { my $self = shift; my $msg = ZMQ::Message->new(@_); *$self->{socket}->sendmsg($msg) != -1 or warn $!; }
 sub recv   { my $self = shift; my $msg = *$self->{socket}->recvmsg() or warn $!; $msg ? $msg->data : undef; }
 sub can_recv { my $self = shift; $self->socket->getsockopt(ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
 sub can_recvmore { my $self = shift; $self->socket->getsockopt(ZMQ_RCVMORE) ? 1 : 0; }
