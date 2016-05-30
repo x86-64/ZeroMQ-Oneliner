@@ -129,7 +129,7 @@ sub _call_zmq {
 		$ret = $func->(@args);
 		if($ret == -1){
 			if($!{EINTR}){
-				continue;
+				redo;
 			}
 			warn $!;
 		}
