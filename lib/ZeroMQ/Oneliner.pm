@@ -4,6 +4,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 
+use Errno qw(EINTR);
 use URI;
 use URI::QueryParam;
 use ZMQ::LibZMQ4;
@@ -108,8 +109,8 @@ sub CLOSE {    shift->close(@_); }
 
 sub socket { my $self = shift; return *$self->{socket}; }
 sub fd     { my $self = shift; return zmq_getsockopt(*$self->{socket}, ZMQ_FD); }
-sub send   { my $self = shift; zmq_msg_send(shift, *$self->{socket}) != -1 or warn $!; }
-sub recv   { my $self = shift; my $msg = zmq_msg_init(); zmq_msg_recv($msg, *$self->{socket}) or warn $!; return zmq_msg_data($msg); }
+sub send   { my $self = shift; _call_zmq(\&zmq_msg_send, shift, *$self->{socket}); }
+sub recv   { my $self = shift; my $msg = zmq_msg_init(); _call_zmq(\&zmq_msg_recv, $msg, *$self->{socket}); return zmq_msg_data($msg); }
 sub can_recv { my $self = shift; zmq_getsockopt($self->socket, ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
 sub can_recvmore { my $self = shift; zmq_getsockopt($self->socket, ZMQ_RCVMORE) ? 1 : 0; }
 sub type   { my $self = shift; *$self->{type}; }
@@ -119,6 +120,24 @@ sub can_flipflop { my $self = shift; $ZMQ_INFO->{$self->type}->{flipflop} ? 1 : 
 sub subscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_SUBSCRIBE, shift); }
 sub unsubscribe { my $self = shift; zmq_setsockopt(*$self->{socket}, ZMQ_UNSUBSCRIBE, shift); }
 sub DESTROY { shift->close; }
+
+sub _call_zmq {
+	my ($func, @args) = @_;
+	
+	my $ret;
+	while(1){
+		$ret = $func->(@args);
+		if($ret == -1){
+			if($!{EINTR}){
+				continue;
+			}
+			warn $!;
+		}
+		last;
+	}
+	
+	return $ret;
+}
 
 sub close  {
 	my $self = shift;
