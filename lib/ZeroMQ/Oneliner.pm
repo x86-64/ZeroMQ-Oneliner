@@ -63,6 +63,7 @@ our $ZMQ_SETSOCKOPT = {
 };
 
 my $CTX;
+my $CTX_pid = 0;
 my $CTX_open_sockets_cnt = 0;
 
 =head1 SYNOPSIS
@@ -147,10 +148,14 @@ sub close  {
 	zmq_close($self->socket);
 	*$self->{socket} = undef;
 	
-	if(--$CTX_open_sockets_cnt == 0){
-		zmq_ctx_destroy($CTX);
-		$CTX = undef;
-	}
+	_close_ctx() if --$CTX_open_sockets_cnt == 0;
+}
+
+sub _close_ctx {
+	zmq_ctx_destroy($CTX);
+	$CTX = undef;
+	$CTX_pid = 0;
+	$CTX_open_sockets_cnt = 0;
 }
 
 sub new {
@@ -174,8 +179,11 @@ sub new {
 		zmq_device($info->{type}, $sock1->socket, $sock2->socket);
 		exit;
 	}else{
+		_close_ctx() if $CTX and $CTX_pid != $$;
+		
 		if($CTX_open_sockets_cnt == 0){
 			$CTX = zmq_ctx_new() or die $!;
+			$CTX_pid = $$;
 		}
 		
 		my $socket = zmq_socket($CTX, $info->{type});
