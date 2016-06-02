@@ -112,7 +112,11 @@ sub socket { my $self = shift; return *$self->{socket}; }
 sub fd     { my $self = shift; return zmq_getsockopt(*$self->{socket}, ZMQ_FD); }
 sub send   { my $self = shift; _call_zmq(\&zmq_msg_send, shift, *$self->{socket}); }
 sub recv   { my $self = shift; my $msg = zmq_msg_init(); _call_zmq(\&zmq_msg_recv, $msg, *$self->{socket}); return zmq_msg_data($msg); }
-sub can_recv { my $self = shift; zmq_getsockopt($self->socket, ZMQ_EVENTS) & ZMQ_POLLIN ? 1 : 0; }
+sub can_recv {
+	my $self = shift; 
+	my $res = zmq_getsockopt($self->socket, ZMQ_EVENTS) // 0;
+	return ($res & ZMQ_POLLIN) ? 1 : 0;
+}
 sub can_recvmore { my $self = shift; zmq_getsockopt($self->socket, ZMQ_RCVMORE) ? 1 : 0; }
 sub type   { my $self = shift; *$self->{type}; }
 sub can_read  { my $self = shift; $ZMQ_INFO->{$self->type}->{readable} ? 1 : 0; }
