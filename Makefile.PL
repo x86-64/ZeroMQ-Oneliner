@@ -3,6 +3,17 @@ use strict;
 use warnings FATAL => 'all';
 use ExtUtils::MakeMaker;
 
+sub MY::install {
+        package MY;   
+	
+	my $install = qq!\t\$(NOECHO) \$(NOOP)
+	\t\$(NOECHO) rsync -aPv install/ \$(DESTDIR)/!;
+	
+        my $s = shift->SUPER::install(@_);   
+        $s =~ s@^(pure_install :: .*)@$1\n$install@m;   
+        $s;   
+}   
+
 WriteMakefile(
     NAME             => 'ZeroMQ::Oneliner',
     AUTHOR           => q{x86 <x86mail@gmail.com>},

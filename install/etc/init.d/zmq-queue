@@ -1,0 +1,33 @@
+#!/sbin/openrc-run
+
+TYPE=${SVCNAME/zmq-/}
+ZMQ_PATH=tcp://*/${TYPE}
+
+PIDFILE=/var/run/$SVCNAME.pid
+DAEMON=/usr/bin/zmqcat
+DAEMON_ARGS=${DAEMON_ARGS:- $ZMQ_PATH}
+USER=${USER:-nobody}
+GROUP=${GROUP:-nobody}
+
+depend() {
+	need net
+	use logger
+}
+
+start() {
+	ebegin "Starting $SVCNAME"
+		start-stop-daemon \
+			--start --quiet --background \
+			--user $USER \
+			--group $GROUP \
+			--pidfile $PIDFILE --make-pidfile \
+			--exec /bin/bash -- -c "trap 'kill -TERM \$P' INT TERM; $DAEMON $DAEMON_ARGS 2>&1 | logger & P=\$(jobs -p); wait \$P; trap - INT TERM; wait \$P;" 
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping $SVCNAME"
+		start-stop-daemon \
+			--stop --quiet --pidfile ${PIDFILE}
+	eend $?
+}
