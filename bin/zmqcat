@@ -3,7 +3,7 @@
 use lib 'lib';
 use ZeroMQ::Oneliner;
 
-unless(@ARGV){
+if(not @ARGV or $ARGV[0] eq "-h" or $ARGV[0] eq "--help"){
 	printf qq!$0 - Send or receive messages via zeromq socket, create devices
 usage:  $0 [options..] tcp://*:6666/push?opt=value
 available sockets: %s
