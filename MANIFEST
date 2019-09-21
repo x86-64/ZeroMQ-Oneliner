@@ -1,10 +1,17 @@
-Changes
 bin/zmqcat
+Changes
+install/etc/conf.d/zmq-forwarder
+install/etc/conf.d/zmq-queue
+install/etc/conf.d/zmq-streamer
+install/etc/init.d/zmq-forwarder
+install/etc/init.d/zmq-queue
+install/etc/init.d/zmq-streamer
 lib/ZeroMQ/Oneliner.pm
 Makefile.PL
 MANIFEST			This list of files
 README
 t/00-load.t
+t/boilerplate.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
