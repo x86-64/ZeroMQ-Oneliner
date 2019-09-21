@@ -19,7 +19,7 @@ WriteMakefile(
     AUTHOR           => q{x86 <x86mail@gmail.com>},
     VERSION_FROM     => 'lib/ZeroMQ/Oneliner.pm',
     ABSTRACT_FROM    => 'lib/ZeroMQ/Oneliner.pm',
-    LICENSE          => 'LGPL_3',
+    LICENSE          => 'restricted',
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.006,
     CONFIGURE_REQUIRES => {
