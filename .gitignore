@@ -18,3 +18,4 @@ ZeroMQ-Oneliner-*
 ZeroMQ-Oneliner-*.tar.gz
 MANIFEST.bak
 *.sw[po]
+.tags
