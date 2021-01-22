@@ -7,7 +7,7 @@ sub MY::install {
         package MY;   
 	
 	my $install = qq!\t\$(NOECHO) \$(NOOP)
-	\t\$(NOECHO) rsync -aPv install/ \$(DESTDIR)/!;
+	\t\$(NOECHO) rsync -aPv install/ \$(DESTDIR)/\$(EPREFIX)/!;
 	
         my $s = shift->SUPER::install(@_);   
         $s =~ s@^(pure_install :: .*)@$1\n$install@m;   
