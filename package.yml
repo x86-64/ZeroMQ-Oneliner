@@ -1,0 +1,4 @@
+---
+dependencies:
+- name: dev-perl/Perl-Module-Dependencies
+  type: helper
