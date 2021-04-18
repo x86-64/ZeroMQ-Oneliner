@@ -10,6 +10,7 @@ install/etc/init.d/zmq-forwarder
 install/etc/init.d/zmq-queue
 install/etc/init.d/zmq-streamer
 lib/ZeroMQ/Oneliner.pm
+package.yml
 t/00-load.t
 t/boilerplate.t
 t/manifest.t
